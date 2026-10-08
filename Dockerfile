@@ -1,11 +1,17 @@
+# ---------- Stage 0: freshmart.zip ko kholo ----------
+FROM alpine:3.20 AS src
+RUN apk add --no-cache unzip
+COPY freshmart.zip /tmp/freshmart.zip
+RUN unzip -q /tmp/freshmart.zip -d /tmp && mv /tmp/freshmart /src
+
 # ---------- Stage 1: React + Tailwind build ----------
 FROM node:22-alpine AS assets
 WORKDIR /app
-COPY package.json package-lock.json ./
+COPY --from=src /src/package.json /src/package-lock.json ./
 RUN npm ci
-COPY vite.config.js ./
-COPY resources resources
-COPY public public
+COPY --from=src /src/vite.config.js ./
+COPY --from=src /src/resources resources
+COPY --from=src /src/public public
 RUN npm run build
 
 # ---------- Stage 2: Laravel (PHP) ----------
@@ -17,9 +23,9 @@ RUN apt-get update \
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
-COPY composer.json composer.lock* ./
+COPY --from=src /src/composer.json ./
 RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --no-interaction
-COPY . .
+COPY --from=src /src/ ./
 COPY --from=assets /app/public/build public/build
 RUN composer dump-autoload --optimize --no-dev --no-scripts \
     && chmod +x docker/start.sh \
