@@ -2,7 +2,9 @@
 FROM alpine:3.20 AS src
 RUN apk add --no-cache unzip
 COPY freshmart.zip /tmp/freshmart.zip
-RUN unzip -q /tmp/freshmart.zip -d /tmp && mv /tmp/freshmart /src
+COPY admin-update.zip /tmp/admin-update.zip
+RUN unzip -q /tmp/freshmart.zip -d /tmp && mv /tmp/freshmart /src \
+    && unzip -q -o /tmp/admin-update.zip -d /src
 
 # ---------- Stage 1: React + Tailwind build ----------
 FROM node:22-alpine AS assets
